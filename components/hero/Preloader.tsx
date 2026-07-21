@@ -21,12 +21,12 @@ export default function Preloader({ onComplete }: PreloaderProps) {
           setTimeout(() => {
             setPhase('done')
             onComplete()
-          }, 800)
+          }, 300)
           return 100
         }
-        return prev + 2
+        return prev + 8
       })
-    }, 25)
+    }, 20)
 
     return () => clearInterval(timer)
   }, [onComplete])
@@ -38,7 +38,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
       <motion.div
         key="preloader"
         initial={{ opacity: 1 }}
-        exit={{ opacity: 0, transition: { duration: 1, ease: 'easeInOut' } }}
+        exit={{ opacity: 0, transition: { duration: 0.4, ease: 'easeInOut' } }}
         className="fixed inset-0 z-[10000] bg-[#111614] flex flex-col items-center justify-center overflow-hidden px-4"
       >
         {/* Ambient background particles */}
@@ -52,7 +52,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.4 }}
             className="flex flex-col items-center gap-3 mb-8"
           >
             <div className="w-16 h-16 rounded-full border border-[#C5A059]/40 flex items-center justify-center bg-[#1A211E]/80 backdrop-blur-md shadow-[0_0_30px_rgba(197,160,89,0.3)]">

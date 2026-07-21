@@ -67,7 +67,7 @@ function ZenStonesStack() {
 function FloatingAromaParticles() {
   return (
     <DreiSparkles
-      count={80}
+      count={40}
       scale={[10, 6, 10]}
       size={4}
       speed={0.4}
@@ -115,8 +115,8 @@ export default function SpaCanvas3D() {
           intensity={1.8}
           color="#FAF4E6"
           castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
         />
         <pointLight position={[-4, 3, -3]} intensity={1.2} color="#5A7365" />
         <pointLight position={[3, -1, 2]} intensity={1} color="#C5A059" />

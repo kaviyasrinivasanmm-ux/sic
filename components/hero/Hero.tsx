@@ -30,14 +30,14 @@ export default function Hero({ onOpenBooking }: HeroProps) {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
             className="lg:col-span-6 flex flex-col items-start text-left"
           >
             {/* Tag Badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-[#C7A76C]/30 text-[#3A4D41] text-xs font-medium mb-6 shadow-xs"
             >
               <span className="w-2 h-2 rounded-full bg-[#C7A76C] animate-pulse" />
@@ -119,7 +119,7 @@ export default function Hero({ onOpenBooking }: HeroProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.3 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
             className="lg:col-span-6 relative h-[420px] sm:h-[540px] w-full rounded-3xl overflow-hidden shadow-2xl"
           >
             {/* Spa Background Image */}
@@ -157,7 +157,7 @@ export default function Hero({ onOpenBooking }: HeroProps) {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
+          transition={{ duration: 0.35, delay: 0.15 }}
           className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4"
         >
           {stats.map((stat, idx) => {

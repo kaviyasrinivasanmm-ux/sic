@@ -1,7 +1,22 @@
 import type { Metadata } from 'next'
+import { Cormorant_Garamond, Inter } from 'next/font/google'
 import './globals.css'
 import SmoothScroll from '@/components/ui/SmoothScroll'
-import FloatingChatbot from '@/components/ai-assistant/FloatingChatbot'
+import ChatbotWrapper from '@/components/ai-assistant/ChatbotWrapper'
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-serif',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-sans',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'BLOOM Wellness Spa | Reconnect with Yourself',
@@ -23,11 +38,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className={`scroll-smooth ${cormorant.variable} ${inter.variable}`}>
       <body className="antialiased selection:bg-[#A8B59A] selection:text-white">
         <SmoothScroll>
           {children}
-          <FloatingChatbot />
+          <ChatbotWrapper />
         </SmoothScroll>
       </body>
     </html>
