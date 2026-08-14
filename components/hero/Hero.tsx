@@ -127,26 +127,28 @@ export default function Hero({ onOpenBooking }: HeroProps) {
               src="/spa-bg.png"
               alt="BLOOM Wellness Spa — serene interior ambiance"
               fill
-              className="object-cover object-center"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              quality={80}
               priority
+              className="object-cover object-center"
             />
 
-            {/* Elegant overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#111614]/50 via-transparent to-[#FCFBF8]/10" />
+            {/* Elegant overlay gradient for optimal contrast */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#FCFBF8]/95 via-[#FCFBF8]/40 to-transparent" />
 
             {/* Top-left badge */}
-            <div className="absolute top-5 left-5 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 text-white text-xs backdrop-blur-md border border-white/20">
-              <span className="w-2 h-2 rounded-full bg-[#C7A76C] animate-ping" />
-              <span className="font-mono text-[11px] tracking-wider">BLOOM — Coorg, India</span>
+            <div className="absolute top-5 left-5 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 text-[#111614] text-xs backdrop-blur-md border border-[#111614]/15 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-[#9A7A3B] animate-ping" />
+              <span className="font-mono text-[11px] font-semibold tracking-wider text-[#111614]">BLOOM — Coorg, India</span>
             </div>
 
-            {/* Bottom overlay text */}
+            {/* Bottom overlay text - pure black for maximum readability */}
             <div className="absolute bottom-5 left-5 right-5 z-20">
-              <p className="font-serif text-white text-2xl font-light leading-snug drop-shadow-lg">
+              <p className="font-serif text-[#111614] text-2xl font-bold leading-snug">
                 Where every breath<br />
-                <span className="text-[#E2C58A]">is a ritual.</span>
+                <span className="text-[#8C6D2D]">is a ritual.</span>
               </p>
-              <p className="text-white/60 text-[11px] font-mono mt-1">
+              <p className="text-[#111614]/90 text-[11px] font-mono font-bold mt-1">
                 Est. 2012 · Medical-Grade Spa Standards
               </p>
             </div>

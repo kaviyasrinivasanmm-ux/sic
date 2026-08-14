@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Scale, Check, Sparkles, Calendar, ArrowRight } from 'lucide-react'
-import { TREATMENTS_DATA, Treatment } from '../treatments/TreatmentsSection'
+import { TREATMENTS_DATA, Treatment } from '@/lib/spaData'
 
 interface TreatmentComparatorProps {
-  onOpenBooking: (treatmentName: string) => void
+  onOpenBooking?: (treatmentName: string) => void
 }
 
 export default function TreatmentComparator({ onOpenBooking }: TreatmentComparatorProps) {
@@ -52,7 +53,15 @@ export default function TreatmentComparator({ onOpenBooking }: TreatmentComparat
     <section id="compare" className="py-24 bg-[#F8F5F0] relative overflow-hidden">
       {/* Full-width background image beneath the header text */}
       <div className="absolute top-0 left-0 right-0 h-[480px] w-full z-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute inset-0 bg-[url('/comparison-bg.png')] bg-cover bg-center bg-no-repeat opacity-25" />
+        <Image
+          src="/comparison-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          loading="lazy"
+          className="object-cover object-center opacity-25"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#F8F5F0] via-[#F8F5F0]/20 to-[#F8F5F0]" />
       </div>
 
@@ -65,7 +74,7 @@ export default function TreatmentComparator({ onOpenBooking }: TreatmentComparat
           <h2 className="font-serif text-3xl sm:text-5xl font-normal text-[#111614] mb-4">
             Interactive Ritual <span className="gold-gradient-text font-light">Comparator</span>
           </h2>
-          <p className="text-xs sm:text-sm text-[#A8B59A] font-light leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#111614] font-medium leading-relaxed">
             Select up to 3 rituals to compare pressure intensity, focus outcome, price, and ideal therapist matching side-by-side.
           </p>
 

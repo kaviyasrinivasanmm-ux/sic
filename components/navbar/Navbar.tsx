@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Calendar } from 'lucide-react'
+import { Menu, X, Calendar, UserCheck } from 'lucide-react'
 
 interface NavbarProps {
   onOpenBooking?: (treatmentName?: string, therapistName?: string) => void
@@ -78,6 +78,44 @@ export default function Navbar({ onOpenBooking }: NavbarProps) {
 
           {/* Right Action Buttons */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* Subtle Staff Icon */}
+            <Link
+              href="/staff/login"
+              prefetch={true}
+              title="Staff Portal"
+              aria-label="Staff Portal"
+              className="w-9 h-9 rounded-full glass-card border border-[#C7A76C]/30 hover:border-[#C7A76C] text-[#3A4D41] hover:text-[#C7A76C] flex items-center justify-center transition-all duration-300 shadow-xs hover:scale-105"
+            >
+              <span className="sr-only">Staff Portal</span>
+              <UserCheck className="w-4 h-4 text-[#A8B59A]" />
+            </Link>
+
+            {/* Subtle Admin Icon */}
+            <Link
+              href="/admin"
+              prefetch={true}
+              title="Admin Portal"
+              aria-label="Admin Portal"
+              className="w-9 h-9 rounded-full glass-card border border-[#C7A76C]/30 hover:border-[#C7A76C] text-[#3A4D41] hover:text-[#C7A76C] flex items-center justify-center transition-all duration-300 shadow-xs hover:scale-105"
+            >
+              <span className="sr-only">Admin Portal</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </Link>
+
             {/* Book Now Button */}
             {onOpenBooking ? (
               <motion.button
@@ -160,6 +198,29 @@ export default function Navbar({ onOpenBooking }: NavbarProps) {
                     <span>Book Ritual (INR ₹)</span>
                   </Link>
                 )}
+                <Link
+                  href="/admin"
+                  prefetch={true}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full glass-card border border-[#C7A76C]/30 text-xs font-medium text-[#3A4D41] hover:border-[#C7A76C]"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-[#C7A76C]"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                  <span>Admin Portal</span>
+                </Link>
               </div>
             </div>
           </motion.div>

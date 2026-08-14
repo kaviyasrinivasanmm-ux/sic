@@ -1,178 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Clock, CheckCircle2, AlertTriangle, Sparkles, HelpCircle, ChevronRight, X, Calendar } from 'lucide-react'
 
-export interface Treatment {
-  id: string
-  name: string
-  subtitle: string
-  category: 'relaxation' | 'pain-relief' | 'holistic' | 'thermal'
-  priceINR: number
-  durations: number[]
-  description: string
-  benefits: string[]
-  bestFor: string[]
-  contraindications: string[]
-  processSteps: { title: string; duration: string; detail: string }[]
-  expectedOutcome: string
-  faqs: { q: string; a: string }[]
-  bgGradient: string
-  accentColor: string
-}
+import { TREATMENTS_DATA, Treatment } from '@/lib/spaData'
+export type { Treatment }
 
-export const TREATMENTS_DATA: Treatment[] = [
-  {
-    id: 'swedish',
-    name: 'Swedish Massage (Serenity Ritual)',
-    subtitle: 'Classic Gentle Full-Body Relaxation',
-    category: 'relaxation',
-    priceINR: 3499,
-    durations: [60, 90, 120],
-    description:
-      'A classic European therapeutic ritual employing long, gliding effleurage strokes, gentle kneading, and circular friction. Perfect for first-time visitors seeking complete mental and physical unwinding.',
-    benefits: [
-      'Boosts lymphatic circulation & oxygen delivery',
-      'Lowers salivary cortisol stress hormone by up to 34%',
-      'Improves joint flexibility and muscular elasticity',
-      'Induces natural serotonin and endorphin release',
-    ],
-    bestFor: ['First-time spa visitors', 'Office professionals with chronic fatigue', 'Light relaxation seekers'],
-    contraindications: ['Recent unhealed fractures', 'Severe varicose veins', 'Acute fever or skin infection'],
-    processSteps: [
-      { title: 'Aroma Inhalation & Foot Bath', duration: '10 mins', detail: 'Warm eucalyptus organic foot soak while breathing pure lavender steam.' },
-      { title: 'Full Body Effleurage', duration: '40 mins', detail: 'Long rhythmic palm strokes with warm organic cold-pressed sesame oil.' },
-      { title: 'Gentle Scalp & Facial Meridian Release', duration: '10 mins', detail: 'Pressure point facial alignment for total cranial relaxation.' },
-    ],
-    expectedOutcome: 'Immediate reduction in anxiety, lightened muscular tension, and deep sleep readiness.',
-    faqs: [
-      { q: 'Is this massage painful?', a: 'Not at all. Swedish massage utilizes light to medium pressure tailored completely to your comfort level.' },
-      { q: 'What should I wear during the session?', a: 'We provide single-use sanitized disposable undergarments. Complete privacy is guaranteed at all times.' },
-    ],
-    bgGradient: 'from-[#FAF4E6] to-[#F5F0EB]',
-    accentColor: '#5A7365',
-  },
-  {
-    id: 'deep-tissue',
-    name: 'Deep Tissue Therapy (Deep Recovery)',
-    subtitle: 'Targeted Sub-Fascial Tension Release',
-    category: 'pain-relief',
-    priceINR: 4299,
-    durations: [60, 90, 120],
-    description:
-      'Reaches deep muscle layers and connective fascia to break down stubborn chronic knots, adhesions, and long-standing postural tightness. Performed by certified senior physiotherapeutic therapists.',
-    benefits: [
-      'Disintegrates deep muscle knots and fibrous adhesions',
-      'Relieves lower back stiffness and sciatica tension',
-      'Accelerates athletic recovery and lactic acid clearance',
-      'Restores natural spinal alignment and posture',
-    ],
-    bestFor: ['Athletes & fitness enthusiasts', 'Chronic back/neck stiffness sufferers', 'Deep pressure lovers'],
-    contraindications: ['Osteoporosis', 'Blood thinning medication', 'Recent major surgeries within 6 weeks'],
-    processSteps: [
-      { title: 'Thermal Herbal Compress Warm-up', duration: '15 mins', detail: 'Hot herbal pouches applied to soften dense muscle fascia.' },
-      { title: 'Targeted Deep Elbow & Thumb Friction', duration: '50 mins', detail: 'Focused intense pressure on trigger points along the back and shoulders.' },
-      { title: 'Passive Myofascial Stretching', duration: '25 mins', detail: 'Assisted spinal and hamstring lengthening to prevent rebound tightness.' },
-    ],
-    expectedOutcome: 'Significant release of deep postural tightness, increased range of motion, and long-term pain relief.',
-    faqs: [
-      { q: 'Will I feel sore the next day?', a: 'Mild tender soreness for 24 hours is normal as deep lactic acid releases. Hydrating thoroughly expedites recovery.' },
-    ],
-    bgGradient: 'from-[#F4F7F5] to-[#E4ECE7]',
-    accentColor: '#3A4A40',
-  },
-  {
-    id: 'aromatherapy',
-    name: 'Aromatherapy Ritual (Eucalyptus Bliss)',
-    subtitle: 'Olfactory Sensory & Lymphatic Reset',
-    category: 'holistic',
-    priceINR: 3999,
-    durations: [60, 90],
-    description:
-      'Combines custom-blended 100% pure steam-distilled essential oils (Eucalyptus, Wild Lavender, Frankincense) with soothing lymphatic drainage techniques to harmonize mind, mood, and immune resilience.',
-    benefits: [
-      'Clears respiratory sinuses and lung passages',
-      'Deeply nourishes dry skin with cold-pressed botanical carrier oils',
-      'Regulates autonomic nervous system and insomnia',
-      'Promotes emotional grounding and sensory serenity',
-    ],
-    bestFor: ['High-stress executives', 'Insomnia & anxiety sufferers', 'Sensory wellbeing seekers'],
-    contraindications: ['First trimester pregnancy', 'Severe asthma / active fragrance allergies'],
-    processSteps: [
-      { title: 'Essential Oil Custom Blending', duration: '10 mins', detail: 'Select your personal oil scent profile based on your current emotional state.' },
-      { title: 'Lymphatic Drainage Massage', duration: '60 mins', detail: 'Rhythmic featherlight strokes directing toxins towards lymph nodes.' },
-      { title: 'Thermal Steam Inhalation', duration: '20 mins', detail: 'Warm botanical mist diffusion over face and chest.' },
-    ],
-    expectedOutcome: 'Profound emotional tranquility, silky hydrated skin, and unblocked nasal pathways.',
-    faqs: [
-      { q: 'Can I shower immediately after?', a: 'We recommend leaving the therapeutic oils on your skin for at least 4 hours for maximum absorption.' },
-    ],
-    bgGradient: 'from-[#FAF8F5] to-[#EDE6DD]',
-    accentColor: '#C5A059',
-  },
-  {
-    id: 'reflexology',
-    name: 'Reflexology (Sole & Spirit Harmony)',
-    subtitle: 'Ancient Pressure Meridian Stimulation',
-    category: 'holistic',
-    priceINR: 2999,
-    durations: [60, 90],
-    description:
-      'Applies systematic pressure to specific reflex zones on the feet and hands corresponding to internal organs and bodily energy meridians. Restores visceral equilibrium from base to crown.',
-    benefits: [
-      'Alleviates plantar fasciitis and leg heaviness',
-      'Stimulates organ digestive detoxification',
-      'Reduces frequency of chronic migraine headaches',
-      'Promotes deep grounding and electrical energy balance',
-    ],
-    bestFor: ['Senior citizens', 'People standing long hours', 'Frequent travelers & flyer fatigue'],
-    contraindications: ['Active foot ulcers or fungal infections', 'Deep vein thrombosis (DVT)'],
-    processSteps: [
-      { title: 'Warm Himalayan Salt Foot Soak', duration: '15 mins', detail: 'Purifying mineral bath with organic rose petals.' },
-      { title: 'Foot Meridian Reflexology', duration: '40 mins', detail: 'Targeted wooden tool and thumb stimulation across 64 foot zones.' },
-      { title: 'Hand & Scalp Meridian Alignment', duration: '20 mins', detail: 'Gentle energy meridian work along wrists and temples.' },
-    ],
-    expectedOutcome: 'Lightness in legs, balanced digestion, and overall visceral vitality.',
-    faqs: [
-      { q: 'Do I need to undress for reflexology?', a: 'No, reflexology requires removing only shoes and socks. Loose comfortable attire is recommended.' },
-    ],
-    bgGradient: 'from-[#FDFBF7] to-[#F6F1EA]',
-    accentColor: '#7A9484',
-  },
-  {
-    id: 'hot-stone',
-    name: 'Hot Stone Therapy (Thermal Balance)',
-    subtitle: 'Volcanic Basalt Heat & Energy Healing',
-    category: 'thermal',
-    priceINR: 4799,
-    durations: [90, 120],
-    description:
-      'Smooth, polished volcanic basalt stones are heated to a precise 54°C and placed along key spinal chakra centers. The radiant heat penetrates 4cm into muscle layers without requiring painful force.',
-    benefits: [
-      'Melts rigid muscle stiffness effortlessly via thermal conduction',
-      'Dramatically enhances arterial blood flow and cell oxygenation',
-      'Soothes chronic arthritis and rheumatic discomfort',
-      'Delivers an unparalleled cocoon-like luxury sensation',
-    ],
-    bestFor: ['Cold climate stiffness', 'Rheumatic stiffness', 'Ultimate luxury pampering lovers'],
-    contraindications: ['High blood pressure (uncontrolled)', 'Diabetes neuropathy', 'Heat sensitivity'],
-    processSteps: [
-      { title: 'Chakra Stone Placement', duration: '15 mins', detail: 'Warmed stones positioned along spine, palms, and toes.' },
-      { title: 'Hot Stone Thermal Gliding', duration: '60 mins', detail: 'Therapist glides smooth warm stones over body with sweet almond oil.' },
-      { title: 'Cool Marble Contrast Therapy', duration: '15 mins', detail: 'Optional cool marble stone touch to seal pores and invigorate skin.' },
-    ],
-    expectedOutcome: 'Complete physical melt, elevated core body warmth, and deep meditative state.',
-    faqs: [
-      { q: 'Are the stones dangerously hot?', a: 'No. Stones are maintained in controlled warmers at 54°C, safe and deeply soothing for skin.' },
-    ],
-    bgGradient: 'from-[#FAF4E6] to-[#EDE6DD]',
-    accentColor: '#D4AF37',
-  },
-]
 
 interface TreatmentsSectionProps {
-  onOpenBooking: (treatmentName: string) => void
+  onOpenBooking?: (treatmentName: string) => void
 }
 
 export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionProps) {
@@ -188,7 +26,15 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
     <section id="treatments" className="py-24 bg-[#FCFBF8] relative overflow-hidden">
       {/* Full-width background image beneath the header text */}
       <div className="absolute top-0 left-0 right-0 h-[480px] w-full z-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute inset-0 bg-[url('/spa-bg-no-human.png')] bg-cover bg-center bg-no-repeat opacity-25" />
+        <Image
+          src="/spa-bg-no-human.png"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          loading="lazy"
+          className="object-cover object-center opacity-25"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8] via-[#FCFBF8]/20 to-[#FCFBF8]" />
       </div>
 
@@ -201,7 +47,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
           <h2 className="font-serif text-3xl sm:text-5xl font-normal text-[#111614] mb-6">
             Curated Therapeutic <span className="gold-gradient-text font-light">Rituals</span>
           </h2>
-          <p className="text-base text-[#8FA88B] font-light leading-relaxed">
+          <p className="text-base text-[#111614] font-medium leading-relaxed">
             Every treatment at BLOOM Spa is meticulously crafted using 100% cold-pressed organic oils, 
             medical-grade sanitized linens, and personalized pressure adjustments.
           </p>

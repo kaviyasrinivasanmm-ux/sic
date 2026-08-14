@@ -25,8 +25,11 @@ body {
   background-color: var(--color-bg);
   color: #1A1F1C;
   overflow-x: hidden;
-  selection-background-color: #A8B59A;
-  selection-color: #FFFFFF;
+}
+
+::selection {
+  background-color: #A8B59A;
+  color: #FFFFFF;
 }
 
 /* Custom Scrollbar */
@@ -79,12 +82,14 @@ body {
 .gold-gradient-text {
   background: linear-gradient(135deg, #E2C58A 0%, #C7A76C 50%, #9A7A3B 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .sage-gradient-text {
   background: linear-gradient(135deg, #A8B59A 0%, #3A4D41 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -151,6 +156,11 @@ main {
   will-change: opacity;
 }
 
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
 /* Performance: Faster default transitions for interactive elements */
 a, button {
   transition-duration: 150ms;
@@ -159,7 +169,12 @@ a, button {
 /* Performance: Content visibility for below-fold sections */
 section:not(:first-child) {
   content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
+  contain-intrinsic-size: 1px 600px;
+}
+
+/* Performance: Optimize image rendering */
+img {
+  content-visibility: auto;
 }
 
 /* Performance: Reduce motion for users who prefer it */

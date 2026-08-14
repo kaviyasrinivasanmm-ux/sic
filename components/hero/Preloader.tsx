@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 
 interface PreloaderProps {
-  onComplete: () => void
+  onComplete?: () => void
 }
 
 export default function Preloader({ onComplete }: PreloaderProps) {
@@ -20,7 +20,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
           setPhase('reveal')
           setTimeout(() => {
             setPhase('done')
-            onComplete()
+            if (onComplete) onComplete()
           }, 300)
           return 100
         }

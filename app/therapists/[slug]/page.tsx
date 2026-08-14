@@ -1,15 +1,19 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/navbar/Navbar'
 import Footer from '@/components/footer/Footer'
-import { THERAPISTS_DATA } from '@/components/therapists/TherapistsSection'
+import { THERAPISTS_DATA } from '@/lib/spaData'
 import { Award, Star, Calendar, ArrowLeft } from 'lucide-react'
 
-export default function TherapistDetailPage() {
-  const params = useParams()
-  const slug = params.slug as string
+export function generateStaticParams() {
+  return [
+    { slug: 'sarah' },
+    { slug: 'david' },
+    { slug: 'helen' },
+  ]
+}
+
+export default async function TherapistDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const therapist = THERAPISTS_DATA.find((t) => t.id === slug)
 
   if (!therapist) {

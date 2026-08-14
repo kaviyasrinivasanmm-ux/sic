@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Sparkles, Shield, Heart, Award, RefreshCw, Check, ArrowRight, Star } from 'lucide-react'
 
 interface AboutSectionProps {
-  onOpenBooking: (treatmentName?: string) => void
+  onOpenBooking?: (treatmentName?: string) => void
 }
 
 export default function AboutSection({ onOpenBooking }: AboutSectionProps) {
@@ -72,7 +73,15 @@ export default function AboutSection({ onOpenBooking }: AboutSectionProps) {
     <section id="about" className="py-24 bg-[#FCFBF8] relative overflow-hidden">
       {/* Full-width background image beneath the header text */}
       <div className="absolute top-0 left-0 right-0 h-[480px] w-full z-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute inset-0 bg-[url('/about-bg.png')] bg-cover bg-center bg-no-repeat opacity-25" />
+        <Image
+          src="/about-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          loading="lazy"
+          className="object-cover object-center opacity-25"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8] via-[#FCFBF8]/20 to-[#FCFBF8]" />
       </div>
 
@@ -86,12 +95,12 @@ export default function AboutSection({ onOpenBooking }: AboutSectionProps) {
             <h2 className="font-serif text-3xl sm:text-5xl font-normal text-[#111614] leading-tight">
               Where Japanese Zen Meets <span className="gold-gradient-text font-light">Scandinavian Polish</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#8FA88B] font-light leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#111614] font-medium leading-relaxed">
               BLOOM Wellness Spa was founded on a singular premise: to strip away the clinical sterility 
               of hospital care and the noisy commercialism of salons, replacing them with a quiet, organic spa oasis 
               where your nervous system can truly rest.
             </p>
-            <p className="text-xs sm:text-sm text-[#8C857B] font-light leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#111614] font-medium leading-relaxed">
               Every detail—from the 432Hz ambient sound waves to our custom-formulated cold-pressed oils and 
               medical-grade UV room purifiers—is designed to dismantle anxiety and rebuild trust.
             </p>

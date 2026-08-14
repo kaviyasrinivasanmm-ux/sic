@@ -1,15 +1,22 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/navbar/Navbar'
 import Footer from '@/components/footer/Footer'
-import { TREATMENTS_DATA } from '@/components/treatments/TreatmentsSection'
+import { TREATMENTS_DATA } from '@/lib/spaData'
 import { Clock, ShieldCheck, CheckCircle2, AlertTriangle, Calendar, ArrowLeft } from 'lucide-react'
 
-export default function TreatmentDetailPage() {
-  const params = useParams()
-  const slug = params.slug as string
+export function generateStaticParams() {
+  return [
+    { slug: 'swedish' },
+    { slug: 'swedish-massage' },
+    { slug: 'deep-tissue' },
+    { slug: 'aromatherapy' },
+    { slug: 'reflexology' },
+    { slug: 'hot-stone' },
+  ]
+}
+
+export default async function TreatmentDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
 
   // Mapping slug to internal ID
   const mapping: { [key: string]: string } = {

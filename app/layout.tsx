@@ -4,11 +4,15 @@ import './globals.css'
 import SmoothScroll from '@/components/ui/SmoothScroll'
 import ChatbotWrapper from '@/components/ai-assistant/ChatbotWrapper'
 
+import ClientUtilities from '@/components/ui/ClientUtilities'
+
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-serif',
   display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
 })
 
 const inter = Inter({
@@ -16,6 +20,8 @@ const inter = Inter({
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
+  preload: true,
+  adjustFontFallback: true,
 })
 
 export const metadata: Metadata = {
@@ -38,11 +44,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`scroll-smooth ${cormorant.variable} ${inter.variable}`}>
-      <body className="antialiased selection:bg-[#A8B59A] selection:text-white">
+    <html lang="en" suppressHydrationWarning className={`scroll-smooth ${cormorant.variable} ${inter.variable}`}>
+      <body suppressHydrationWarning className="antialiased selection:bg-[#A8B59A] selection:text-white">
         <SmoothScroll>
           {children}
           <ChatbotWrapper />
+          <ClientUtilities />
         </SmoothScroll>
       </body>
     </html>

@@ -1,13 +1,54 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import Navbar from '@/components/navbar/Navbar'
 import Footer from '@/components/footer/Footer'
 import { motion } from 'framer-motion'
-import { Check, Star, RefreshCw } from 'lucide-react'
+import { Check, Star, RefreshCw, X } from 'lucide-react'
 
 export default function MembershipPage() {
   const [flippedCard, setFlippedCard] = useState<string | null>(null)
+
+  // Member visit lookup state
+  const [lookupEmail, setLookupEmail] = useState('')
+  const [memberResult, setMemberResult] = useState<any | null>(null)
+  const [lookupSearched, setLookupSearched] = useState(false)
+
+  // Enrollment modal state
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false)
+  const [selectedEnrollTier, setSelectedEnrollTier] = useState<any | null>(null)
+  const [memberName, setMemberName] = useState('')
+  const [memberPhone, setMemberPhone] = useState('')
+  const [memberEmail, setMemberEmail] = useState('')
+  const [enrollPaymentMethod, setEnrollPaymentMethod] = useState<'UPI' | 'Bank Transfer' | 'Pay at Spa (COD)'>('UPI')
+  const [enrollAdvance, setEnrollAdvance] = useState(true)
+  const [enrollSuccess, setEnrollSuccess] = useState(false)
+
+  const handleLookupMember = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLookupSearched(true)
+    const { getCustomers } = require('@/lib/adminData')
+    const customers = getCustomers()
+    const found = customers.find(
+      (c: any) =>
+        c.email.toLowerCase() === lookupEmail.trim().toLowerCase() ||
+        c.phone.includes(lookupEmail.trim())
+    )
+    setMemberResult(found || null)
+  }
+
+  const handleEnrollSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const { subscribeCustomerMembershipInSupabase } = require('@/lib/supabaseService')
+    const { recordCustomerVisit } = require('@/lib/adminData')
+
+    if (selectedEnrollTier) {
+      subscribeCustomerMembershipInSupabase(memberEmail, selectedEnrollTier.name)
+      recordCustomerVisit(memberName, memberEmail, memberPhone, enrollAdvance ? 1000 : 0, new Date().toISOString().split('T')[0])
+    }
+    setEnrollSuccess(true)
+  }
 
   const membershipTiers = [
     {
@@ -65,7 +106,15 @@ export default function MembershipPage() {
 
       {/* Full-width background image beneath the header text */}
       <div className="absolute top-0 left-0 right-0 h-[480px] w-full z-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute inset-0 bg-[url('/membership-bg.png')] bg-cover bg-center bg-no-repeat opacity-25" />
+        <Image
+          src="/membership-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          loading="lazy"
+          className="object-cover object-center opacity-25"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8] via-[#FCFBF8]/20 to-[#FCFBF8]" />
       </div>
 
@@ -78,9 +127,83 @@ export default function MembershipPage() {
           <h1 className="font-serif text-3xl sm:text-5xl font-normal text-[#111614] mb-4">
             Exclusive Spa <span className="gold-gradient-text font-light">Passes</span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#A8B59A] font-light">
-            Click any membership pass to flip and reveal full member privileges, roll-over benefits, and guest cards.
+          <p className="text-xs sm:text-sm text-[#111614] font-medium">
+            Enjoy priority reservations, transferable sessions, complimentary thermal upgrades, and dedicated concierge access.
           </p>
+
+          {/* Visit Counter & Pass Lookup Widget */}
+          <div className="mt-8 p-6 rounded-3xl bg-[#1D2B23] border border-[#C7A76C]/35 text-white shadow-xl text-left">
+            <h3 className="font-serif text-lg font-bold text-white mb-1 flex items-center gap-2">
+              <Star className="w-5 h-5 text-[#C7A76C]" />
+              <span>Check My Membership Visit Balance</span>
+            </h3>
+            <p className="text-xs text-[#C5D3CB] mb-4">
+              Enter your registered email or WhatsApp phone number to view your visit history and membership perks.
+            </p>
+
+            <form onSubmit={handleLookupMember} className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                required
+                value={lookupEmail}
+                onChange={(e) => setLookupEmail(e.target.value)}
+                placeholder="Enter email or phone (e.g. priya.sharma@example.com)"
+                className="flex-1 px-4 py-3 rounded-2xl bg-[#283A30] border border-[#C7A76C]/30 text-white text-xs placeholder:text-gray-400 focus:outline-none focus:border-[#C7A76C]"
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#C7A76C] to-[#9A7A3B] text-white font-semibold text-xs shadow-md shrink-0 hover:opacity-95"
+              >
+                Track Visits & Pass
+              </button>
+            </form>
+
+            {lookupSearched && (
+              <div className="mt-4 pt-4 border-t border-[#C7A76C]/20">
+                {memberResult ? (
+                  <div className="p-4 rounded-2xl bg-[#283A30] border border-[#C7A76C]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-serif font-bold text-[#FCFBF8]">
+                        {memberResult.name} <span className="text-xs font-normal text-[#C7A76C]">({memberResult.email})</span>
+                      </p>
+                      <p className="text-xs text-[#C5D3CB]">
+                        Last Sanctuary Visit: <strong>{memberResult.lastVisit || 'N/A'}</strong>
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="text-center px-3.5 py-2 rounded-xl bg-[#1D2B23] border border-[#C7A76C]/40">
+                        <span className="block font-mono text-xl font-bold text-[#C7A76C]">
+                          {memberResult.totalBookings || 1}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-[#C5D3CB]">Visits Recorded</span>
+                      </div>
+
+                      <div className="text-center px-3.5 py-2 rounded-xl bg-[#1D2B23] border border-[#C7A76C]/40">
+                        <span className="block font-mono text-xl font-bold text-white">
+                          ₹{(memberResult.totalSpent || 0).toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-[#C5D3CB]">Total Spend</span>
+                      </div>
+
+                      <div className="text-center px-3.5 py-2 rounded-xl bg-[#1D2B23] border border-emerald-500/40">
+                        <span className="block font-mono text-xl font-bold text-emerald-400">
+                          ₹{Math.max(0, Math.floor((memberResult.totalSpent || 0) / 1500) * 100 - (memberResult.totalRedeemed || 0))}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-emerald-300">
+                          Available Reward Cash
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-red-950/40 border border-red-800/50 text-red-200 text-xs">
+                    No active membership record found for <strong>{lookupEmail}</strong>. Every new appointment automatically registers and counts your visits!
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Membership Cards Grid */}
@@ -159,11 +282,12 @@ export default function MembershipPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        window.location.href = `/book?treatment=${encodeURIComponent(tier.name + ' Enrollment')}`
+                        setSelectedEnrollTier(tier)
+                        setIsEnrollModalOpen(true)
                       }}
                       className="w-full py-3 rounded-full bg-gradient-to-r from-[#C7A76C] to-[#9A7A3B] text-white font-semibold text-xs tracking-wider shadow-lg hover:opacity-90"
                     >
-                      Enroll in {tier.name.split(' Pass')[0]}
+                      Enroll & Pay for {tier.name.split(' Pass')[0]}
                     </button>
                   </div>
                 </motion.div>
@@ -172,6 +296,173 @@ export default function MembershipPage() {
           })}
         </div>
       </div>
+
+      {/* Membership Claim & Payment Modal */}
+      {isEnrollModalOpen && selectedEnrollTier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#FCFBF8] border border-[#C7A76C]/40 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+            <button
+              onClick={() => setIsEnrollModalOpen(false)}
+              className="absolute top-6 right-6 p-2 rounded-full text-[#4A6358] hover:text-[#111614]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {!enrollSuccess ? (
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-widest text-[#C7A76C] block mb-1">
+                  Membership Enrollment & Payment
+                </span>
+                <h3 className="font-serif text-2xl font-bold text-[#111614] mb-2">
+                  Claim {selectedEnrollTier.name}
+                </h3>
+                <p className="text-xs text-[#5A7365] mb-6">
+                  Price: <strong>{selectedEnrollTier.price}</strong> • Includes priority booking & free additions.
+                </p>
+
+                <form onSubmit={handleEnrollSubmit} className="space-y-4 text-xs">
+                  <div>
+                    <label className="block text-xs uppercase font-semibold text-[#111614] mb-1">
+                      Member Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Radhika Sharma"
+                      value={memberName}
+                      onChange={(e) => setMemberName(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-[#C7A76C]/40 bg-white text-[#111614]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-[#111614] mb-1">
+                        WhatsApp Phone *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 98765 43210"
+                        value={memberPhone}
+                        onChange={(e) => setMemberPhone(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-[#C7A76C]/40 bg-white text-[#111614]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase font-semibold text-[#111614] mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="radhika@example.com"
+                        value={memberEmail}
+                        onChange={(e) => setMemberEmail(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-[#C7A76C]/40 bg-white text-[#111614]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Method Selector */}
+                  <div>
+                    <label className="block text-xs uppercase font-semibold text-[#111614] mb-2">
+                      Select Payment Method
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'UPI', label: 'Instant UPI' },
+                        { id: 'Bank Transfer', label: 'Bank Transfer' },
+                        { id: 'Pay at Spa (COD)', label: 'Pay at Spa' },
+                      ].map((pm) => (
+                        <button
+                          key={pm.id}
+                          type="button"
+                          suppressHydrationWarning
+                          onClick={() => setEnrollPaymentMethod(pm.id as any)}
+                          className={`py-2.5 px-2 rounded-xl text-[11px] font-semibold border transition-all text-center ${
+                            enrollPaymentMethod === pm.id
+                              ? 'bg-[#C7A76C] text-white border-[#C7A76C]'
+                              : 'bg-white text-[#111614] border-[#EDE6DD]'
+                          }`}
+                        >
+                          {pm.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {enrollPaymentMethod === 'UPI' && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-white border border-[#C7A76C]/30 text-[11px] space-y-1">
+                        <p className="font-semibold text-[#111614]">📱 Scan / Pay via UPI:</p>
+                        <p className="text-[#5A7365]">UPI ID: <strong className="font-mono text-[#C7A76C]">bloomspa@upi</strong></p>
+                      </div>
+                    )}
+
+                    {enrollPaymentMethod === 'Bank Transfer' && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-white border border-[#C7A76C]/30 text-[11px] space-y-1">
+                        <p className="font-semibold text-[#111614]">🏦 Direct Bank Account:</p>
+                        <p className="text-[#5A7365]">Bank: HDFC Bank • A/C: 50200012345678 • IFSC: HDFC0001234</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Advance Deposit Checkbox */}
+                  <div className="p-3.5 rounded-2xl bg-[#C7A76C]/10 border border-[#C7A76C]/30 text-xs">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enrollAdvance}
+                        onChange={(e) => setEnrollAdvance(e.target.checked)}
+                        className="w-4 h-4 rounded text-[#C7A76C]"
+                      />
+                      <span className="font-semibold text-[#111614]">
+                        🔒 Pay ₹1,000 Advance Token for Immediate Pass Activation
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="pt-4 flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => setIsEnrollModalOpen(false)}
+                      className="px-6 py-3 rounded-full text-xs font-semibold text-[#8C857B]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-8 py-3.5 rounded-full bg-gradient-to-r from-[#C7A76C] to-[#9A7A3B] text-white text-xs font-semibold shadow-lg"
+                    >
+                      Confirm Membership & Issue Pass
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-4">
+                <div className="w-16 h-16 rounded-full bg-[#5A7365]/20 border-2 border-[#5A7365] text-[#5A7365] flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 stroke-[3]" />
+                </div>
+                <h3 className="font-serif text-2xl font-bold text-[#111614]">Membership Activated!</h3>
+                <p className="text-xs text-[#5A7365]">
+                  Congratulations {memberName}! Your <strong>{selectedEnrollTier.name}</strong> is active.
+                </p>
+                <div className="p-4 rounded-2xl bg-white border border-[#C7A76C]/30 text-left text-xs space-y-1.5">
+                  <p>Payment Method: <strong>{enrollPaymentMethod}</strong></p>
+                  <p>Advance Token Paid: <strong>{enrollAdvance ? '₹1,000' : 'None'}</strong></p>
+                  <p>Perks Unlocked: <strong>₹100 Loyalty Cash on every visit</strong></p>
+                </div>
+                <button
+                  onClick={() => setIsEnrollModalOpen(false)}
+                  className="w-full py-3 rounded-full bg-[#5A7365] text-white font-semibold text-xs"
+                >
+                  Close & View Pass
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>

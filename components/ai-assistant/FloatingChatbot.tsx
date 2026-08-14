@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageSquare, Sparkles, X, Send, Phone, Scale, HelpCircle, Bot, Calendar, RefreshCw } from 'lucide-react'
+import { MessageSquare, Sparkles, X, Send, Phone, Scale, HelpCircle, Bot, Calendar, RefreshCw, XCircle, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface Message {
   id: string
@@ -19,7 +19,7 @@ interface Message {
 
 export default function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'chat' | 'compare' | 'faq'>('chat')
+  const [activeTab, setActiveTab] = useState<'chat' | 'compare' | 'faq' | 'cancel'>('chat')
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -30,11 +30,60 @@ export default function FloatingChatbot() {
   const [inputQuery, setInputQuery] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
+  // Dedicated Cancellation Tab State
+  const [cancelBookingRefInput, setCancelBookingRefInput] = useState('BLM-88120')
+  const [cancelReasonInput, setCancelReasonInput] = useState('')
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null)
+  const [lookupRefInput, setLookupRefInput] = useState('')
+  const [lookupResult, setLookupResult] = useState<any | null>(null)
+  const [lookupSearched, setLookupSearched] = useState(false)
+
+  const handleTabCancelSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cancelBookingRefInput.trim()) return
+
+    const { getBookings, createCancellationRequest } = require('@/lib/adminData')
+    const ref = cancelBookingRefInput.trim().toUpperCase()
+    const bookings = getBookings()
+    const found = bookings.find((b: any) => b.bookingRef.toUpperCase() === ref)
+
+    if (found) {
+      createCancellationRequest({
+        bookingId: found.id,
+        bookingRef: found.bookingRef,
+        clientName: found.clientName,
+        clientEmail: found.clientEmail,
+        clientPhone: found.clientPhone,
+        treatmentName: found.treatmentName,
+        bookingDate: found.bookingDate,
+        reason: cancelReasonInput.trim() || 'Cancellation requested via Chatbot Cancellation Tab',
+      })
+      setCancelMessage(`✅ Cancellation request for ${ref} submitted to Staff Concierge! Status: Pending Approval.`)
+      setCancelReasonInput('')
+    } else {
+      setCancelMessage(`⚠️ Booking reference ${ref} not found in active records. Please double check.`)
+    }
+  }
+
+  const handleTabStatusLookup = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLookupSearched(true)
+    if (!lookupRefInput.trim()) return
+
+    const { getCancellationRequests } = require('@/lib/adminData')
+    const requests = getCancellationRequests()
+    const ref = lookupRefInput.trim().toUpperCase()
+    const found = requests.find((r: any) => r.bookingRef.toUpperCase() === ref)
+
+    setLookupResult(found || null)
+  }
+
   const presetSymptoms = [
+    { label: 'Cancel Booking BLM-88120', value: 'cancel' },
+    { label: 'Check Cancellation Status BLM-88120', value: 'status' },
     { label: 'Lower Back & Neck Stiffness', value: 'stiffness' },
     { label: 'Deep Stress & Insomnia', value: 'stress' },
     { label: 'Post-Workout Muscle Fatigue', value: 'recovery' },
-    { label: 'Mental Burnout & Anxiety', value: 'mental' },
   ]
 
   const faqItems = [
@@ -62,6 +111,96 @@ export default function FloatingChatbot() {
 
     setTimeout(() => {
       const lower = queryText.toLowerCase()
+      const matchRef = queryText.match(/BLM-\d+/i) || queryText.match(/BLM-\w+/i)
+      const bookingRef = matchRef ? matchRef[0].toUpperCase() : null
+
+      const { getBookings, getCancellationRequests, createCancellationRequest } = require('@/lib/adminData')
+      const allBookings = getBookings()
+      const allRequests = getCancellationRequests()
+
+      // CASE A: User is asking about cancellation or status
+      if (lower.includes('cancel') || lower.includes('cancellation') || lower.includes('status')) {
+        if (bookingRef) {
+          // Check if a cancellation request already exists
+          const existingReq = allRequests.find((r: any) => r.bookingRef.toUpperCase() === bookingRef)
+          if (existingReq) {
+            let statusText = ''
+            if (existingReq.status === 'Pending') {
+              statusText = `⏳ Your Cancellation Request for **${bookingRef}** is currently **PENDING** staff approval. Our Spa Concierge is reviewing your request.`
+            } else if (existingReq.status === 'Accepted') {
+              statusText = `✅ Your Cancellation Request for **${bookingRef}** has been **ACCEPTED** by Spa Staff. Your booking is officially **CANCELLED**.`
+            } else {
+              statusText = `❌ Your Cancellation Request for **${bookingRef}** was **DECLINED** by Spa Staff. Staff Note: "${existingReq.staffResponse || 'Booking remains active per spa policy'}". Your booking remains **ACTIVE**.`
+            }
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: statusText,
+              },
+            ])
+            setIsAnalyzing(false)
+            return
+          }
+
+          // Search booking in DB
+          const foundBooking = allBookings.find((b: any) => b.bookingRef.toUpperCase() === bookingRef)
+          if (foundBooking) {
+            // Extract reason or default
+            const reasonParts = queryText.split(bookingRef)
+            const reason = reasonParts[1]?.trim() || queryText || 'Guest requested cancellation via AI Chatbot'
+
+            const newReq = createCancellationRequest({
+              bookingId: foundBooking.id,
+              bookingRef: foundBooking.bookingRef,
+              clientName: foundBooking.clientName,
+              clientEmail: foundBooking.clientEmail,
+              clientPhone: foundBooking.clientPhone,
+              treatmentName: foundBooking.treatmentName,
+              bookingDate: foundBooking.bookingDate,
+              reason: reason.length > 5 ? reason : 'Emergency scheduling conflict',
+            })
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: `📋 **Cancellation Request Submitted to Staff**:\n\n• **Booking Reference**: ${foundBooking.bookingRef}\n• **Guest Name**: ${foundBooking.clientName}\n• **Ritual**: ${foundBooking.treatmentName}\n• **Date**: ${foundBooking.bookingDate}\n• **Status**: ⏳ **Pending Staff Approval**\n\nYour request has been routed to our **Staff Concierge Dashboard**. Our staff will review your request shortly. You can ask me anytime for status updates!`,
+              },
+            ])
+            setIsAnalyzing(false)
+            return
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                sender: 'ai',
+                text: `⚠️ No active booking reference **${bookingRef}** was found in our database. Please double-check your booking reference number (e.g. BLM-92841) or contact our concierge directly.`,
+              },
+            ])
+            setIsAnalyzing(false)
+            return
+          }
+        } else {
+          // No booking ref specified in query
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              sender: 'ai',
+              text: `I can assist you with your **Booking Cancellation Request**. Please reply with your **Booking Reference ID** (e.g. \`BLM-92841\`) and the reason for cancellation.\n\nExample: *"Cancel booking BLM-92841 due to unexpected travel"*`,
+            },
+          ])
+          setIsAnalyzing(false)
+          return
+        }
+      }
+
+      // CASE B: Standard Wellness Ritual Recommendation
       let rec = {
         treatment: 'Swedish Massage (Serenity Ritual)',
         therapist: 'Sarah Jenkins',
@@ -195,7 +334,7 @@ export default function FloatingChatbot() {
               </button>
               <button
                 onClick={() => setActiveTab('faq')}
-                className={`flex-1 py-3 text-center font-medium border-b-2 transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-3 text-center font-medium border-b-2 transition-all flex items-center justify-center gap-1 text-[11px] ${
                   activeTab === 'faq'
                     ? 'border-[#C7A76C] text-[#111614] bg-white'
                     : 'border-transparent text-[#8C857B] hover:text-[#111614]'
@@ -203,6 +342,17 @@ export default function FloatingChatbot() {
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 FAQ
+              </button>
+              <button
+                onClick={() => setActiveTab('cancel')}
+                className={`flex-1 py-3 text-center font-medium border-b-2 transition-all flex items-center justify-center gap-1 text-[11px] ${
+                  activeTab === 'cancel'
+                    ? 'border-[#C7A76C] text-[#111614] bg-white'
+                    : 'border-transparent text-[#8C857B] hover:text-[#111614]'
+                }`}
+              >
+                <XCircle className="w-3.5 h-3.5 text-amber-600" />
+                Cancellation
               </button>
             </div>
 
@@ -290,6 +440,111 @@ export default function FloatingChatbot() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'cancel' && (
+                <div className="space-y-4 text-xs">
+                  <div className="p-3.5 rounded-2xl bg-[#1D2B23] text-white border border-[#C7A76C]/30 space-y-1">
+                    <h4 className="font-serif text-sm font-semibold text-white flex items-center gap-1.5">
+                      <XCircle className="w-4 h-4 text-amber-400" />
+                      <span>Booking Cancellation Desk</span>
+                    </h4>
+                    <p className="text-[11px] text-[#C5D3CB]">
+                      Submit a cancellation request for review by our Concierge Staff.
+                    </p>
+                  </div>
+
+                  {cancelMessage && (
+                    <div
+                      className={`p-3 rounded-xl border text-xs ${
+                        cancelMessage.includes('✅')
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                          : 'bg-amber-50 border-amber-300 text-amber-900'
+                      }`}
+                    >
+                      {cancelMessage}
+                    </div>
+                  )}
+
+                  {/* Form 1: Submit Request */}
+                  <form onSubmit={handleTabCancelSubmit} className="p-3.5 bg-white border border-[#EEE6DA] rounded-2xl space-y-3 shadow-xs">
+                    <h5 className="font-semibold text-[#111614] flex items-center gap-1 text-xs">
+                      <Calendar className="w-3.5 h-3.5 text-[#C7A76C]" />
+                      <span>Request Booking Cancellation</span>
+                    </h5>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-[#8C857B] mb-1">
+                        Booking Reference ID *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={cancelBookingRefInput}
+                        onChange={(e) => setCancelBookingRefInput(e.target.value)}
+                        placeholder="e.g. BLM-92841"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-[#F8F5F0] border border-[#C7A76C]/30 text-[#111614] font-mono focus:outline-none focus:border-[#C7A76C]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase text-[#8C857B] mb-1">
+                        Cancellation Reason *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={cancelReasonInput}
+                        onChange={(e) => setCancelReasonInput(e.target.value)}
+                        placeholder="e.g. Emergency business travel commitment..."
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-[#F8F5F0] border border-[#C7A76C]/30 text-[#111614] focus:outline-none focus:border-[#C7A76C]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 rounded-full bg-[#1D2B23] hover:bg-[#283A30] text-white font-semibold text-xs tracking-wider shadow-xs flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5 text-[#C7A76C]" />
+                      <span>Submit Request to Staff</span>
+                    </button>
+                  </form>
+
+                  {/* Form 2: Track Status */}
+                  <form onSubmit={handleTabStatusLookup} className="p-3.5 bg-[#F8F5F0] border border-[#EEE6DA] rounded-2xl space-y-2.5">
+                    <h5 className="font-semibold text-[#111614] text-xs">🔍 Track Existing Request Status</h5>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={lookupRefInput}
+                        onChange={(e) => setLookupRefInput(e.target.value)}
+                        placeholder="Enter BLM-XXXXX"
+                        className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white border border-[#C7A76C]/30 font-mono text-[#111614] focus:outline-none"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 rounded-xl bg-[#C7A76C] text-white font-semibold text-xs hover:opacity-90"
+                      >
+                        Check
+                      </button>
+                    </div>
+
+                    {lookupSearched && (
+                      <div className="pt-2 border-t border-[#EEE6DA]">
+                        {lookupResult ? (
+                          <div className="p-2.5 rounded-xl bg-white border border-[#C7A76C]/30 space-y-1 text-[11px]">
+                            <p>Reference: <strong className="font-mono">{lookupResult.bookingRef}</strong></p>
+                            <p>Status: <strong className={lookupResult.status === 'Accepted' ? 'text-emerald-700' : lookupResult.status === 'Declined' ? 'text-red-700' : 'text-amber-600'}>{lookupResult.status}</strong></p>
+                            {lookupResult.staffResponse && <p className="italic text-[#8C857B]">Staff Note: "{lookupResult.staffResponse}"</p>}
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-red-600 italic">No cancellation request found for reference "{lookupRefInput}".</p>
+                        )}
+                      </div>
+                    )}
+                  </form>
                 </div>
               )}
             </div>

@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Calendar as CalendarIcon, Clock, User, Check, X, Sparkles, MessageSquare, ArrowRight, ShieldCheck, ChevronRight, ChevronLeft, Phone, Mail } from 'lucide-react'
-import confetti from 'canvas-confetti'
 import Navbar from '@/components/navbar/Navbar'
 import Footer from '@/components/footer/Footer'
-import { TREATMENTS_DATA } from '@/components/treatments/TreatmentsSection'
-import { THERAPISTS_DATA } from '@/components/therapists/TherapistsSection'
+import { TREATMENTS_DATA, THERAPISTS_DATA } from '@/lib/spaData'
+import { createBookingInSupabase } from '@/lib/supabaseService'
+import { isSlotAvailable, saveBooking } from '@/lib/adminData'
 
-export default function BookPage() {
+function BookForm() {
   const searchParams = useSearchParams()
 
   const [step, setStep] = useState(1)
@@ -30,6 +30,11 @@ export default function BookPage() {
   const [clientPhone, setClientPhone] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [specialNotes, setSpecialNotes] = useState('')
+
+  // Payment & Reward Options
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Bank Transfer' | 'Pay at Spa (COD)'>('Pay at Spa (COD)')
+  const [payAdvance, setPayAdvance] = useState(false)
+  const [redeemRewards, setRedeemRewards] = useState(false)
 
   const [bookingRef, setBookingRef] = useState('')
   const [isConfirmed, setIsConfirmed] = useState(false)
@@ -55,7 +60,18 @@ export default function BookPage() {
     { id: 'herbal', name: 'Hot Herbal Compress Warm-up', priceINR: 699 },
   ]
 
-  const getTreatmentPrice = () => {
+  const getRewardDiscount = () => {
+    if (!redeemRewards) return 0
+    try {
+      const { getCustomerRewardBalance } = require('@/lib/adminData')
+      const bal = clientEmail ? getCustomerRewardBalance(clientEmail) : 100
+      return bal > 0 ? bal : 100
+    } catch {
+      return 100
+    }
+  }
+
+  const getGrossPrice = () => {
     const t = TREATMENTS_DATA.find((item) => item.name === selectedTreatment)
     let base = t ? t.priceINR : 3499
     if (selectedDuration === 120) base += 1200
@@ -67,8 +83,15 @@ export default function BookPage() {
     return base + addonsTotal
   }
 
-  const triggerConfetti = () => {
+  const getTreatmentPrice = () => {
+    const gross = getGrossPrice()
+    const discount = getRewardDiscount()
+    return Math.max(0, gross - discount)
+  }
+
+  const triggerConfetti = async () => {
     try {
+      const confetti = (await import('canvas-confetti')).default
       confetti({
         particleCount: 100,
         spread: 70,
@@ -80,11 +103,41 @@ export default function BookPage() {
     }
   }
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
+  const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const ref = `BLOOM-${Math.floor(1000 + Math.random() * 9000)}`
+    const ref = `BLM-${Math.floor(10000 + Math.random() * 90000)}`
     setBookingRef(ref)
     setIsConfirmed(true)
+
+    const finalPrice = getTreatmentPrice()
+    const advance = 300 // Mandatory ₹300 advance deducted from own bill to confirm booking!
+    const discount = getRewardDiscount()
+
+    const { redeemCustomerRewards } = await import('@/lib/adminData')
+    if (redeemRewards && clientEmail && discount > 0) {
+      redeemCustomerRewards(clientEmail, discount)
+    }
+
+    // Save booking locally & count membership visit automatically
+    saveBooking({
+      bookingRef: ref,
+      clientName,
+      clientPhone,
+      clientEmail,
+      treatmentName: selectedTreatment,
+      durationMins: selectedDuration,
+      therapistName: selectedTherapist,
+      bookingDate: selectedDate,
+      timeSlot: selectedTimeSlot,
+      addons: selectedAddons,
+      totalPrice: finalPrice,
+      advanceAmount: advance,
+      paymentMethod,
+      discountApplied: discount,
+      specialNotes,
+      status: 'confirmed',
+    })
+
     triggerConfetti()
   }
 
@@ -170,6 +223,7 @@ export default function BookPage() {
                           <button
                             key={t.id}
                             type="button"
+                            suppressHydrationWarning
                             onClick={() => setSelectedTreatment(t.name)}
                             className={`w-full p-3.5 rounded-2xl text-left border text-xs transition-all flex items-center justify-between ${
                               selectedTreatment === t.name
@@ -198,6 +252,7 @@ export default function BookPage() {
                           <button
                             key={dur}
                             type="button"
+                            suppressHydrationWarning
                             onClick={() => setSelectedDuration(dur)}
                             className={`py-3 rounded-xl text-xs font-semibold border transition-all ${
                               selectedDuration === dur
@@ -308,20 +363,32 @@ export default function BookPage() {
                         Select Available Time Slot
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {timeSlots.map((slot) => (
-                          <button
-                            key={slot.time}
-                            type="button"
-                            onClick={() => setSelectedTimeSlot(slot.time)}
-                            className={`py-3 rounded-xl text-xs font-mono font-semibold border transition-all ${
-                              selectedTimeSlot === slot.time
-                                ? 'bg-[#C5A059] text-white border-[#C5A059]'
-                                : 'bg-white text-[#111614] border-[#EDE6DD]'
-                            }`}
-                          >
-                            {slot.time}
-                          </button>
-                        ))}
+                        {timeSlots.map((slot) => {
+                          const available = isSlotAvailable(selectedDate, slot.time, selectedTherapist)
+                          const isSelected = selectedTimeSlot === slot.time
+                          return (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              disabled={!available}
+                              onClick={() => available && setSelectedTimeSlot(slot.time)}
+                              className={`py-3 px-2 rounded-xl text-xs font-mono font-semibold border transition-all flex flex-col items-center justify-center gap-1 ${
+                                !available
+                                  ? 'bg-red-50 text-red-400 border-red-200 cursor-not-allowed opacity-70'
+                                  : isSelected
+                                  ? 'bg-[#C5A059] text-white border-[#C5A059] shadow-sm'
+                                  : 'bg-white text-[#111614] border-[#EDE6DD] hover:border-[#C5A059]'
+                              }`}
+                            >
+                              <span>{slot.time}</span>
+                              {!available && (
+                                <span className="text-[9px] font-sans uppercase font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">
+                                  Unavailable
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
 
@@ -434,15 +501,107 @@ export default function BookPage() {
                       />
                     </div>
 
+                    {/* Repeated Visitor Loyalty Checkbox */}
+                    <div className="p-3.5 rounded-2xl bg-[#5A7365]/10 border border-[#5A7365]/30 text-xs">
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={redeemRewards}
+                          onChange={(e) => setRedeemRewards(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#5A7365] focus:ring-[#5A7365]"
+                        />
+                        <div>
+                          <span className="font-semibold text-[#111614]">
+                            Redeem Loyalty Reward Cash (-₹{getRewardDiscount() || 100})
+                          </span>
+                          <p className="text-[11px] text-[#5A7365] font-light">
+                            Rule: Earn ₹100 for every ₹1,500 spent. Applied amount is automatically subtracted from total bill.
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Payment Method Selector */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[#111614] mb-2">
+                        Select Payment Method for ₹300 Advance Token
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'UPI', label: 'Instant UPI (GPay/PhonePe)' },
+                          { id: 'Bank Transfer', label: 'Bank Transfer (NEFT)' },
+                          { id: 'Pay at Spa (COD)', label: 'Pay at Spa (COD)' },
+                        ].map((pm) => (
+                          <button
+                            key={pm.id}
+                            type="button"
+                            suppressHydrationWarning
+                            onClick={() => setPaymentMethod(pm.id as any)}
+                            className={`py-2.5 px-2 rounded-xl text-[11px] font-semibold border transition-all text-center ${
+                              paymentMethod === pm.id
+                                ? 'bg-[#C5A059] text-white border-[#C5A059] shadow-sm'
+                                : 'bg-white text-[#111614] border-[#EDE6DD]'
+                            }`}
+                          >
+                            {pm.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {paymentMethod === 'UPI' && (
+                        <div className="mt-2.5 p-3 rounded-xl bg-white border border-[#C5A059]/30 text-[11px] space-y-1">
+                          <p className="font-semibold text-[#111614]">📱 Instant UPI Payment Details:</p>
+                          <p className="text-[#5A7365]">UPI ID: <strong className="font-mono text-[#C5A059]">bloomspa@upi</strong></p>
+                          <p className="text-[#8C857B]">Pay ₹300 advance via Google Pay / PhonePe / Paytm to confirm slot.</p>
+                        </div>
+                      )}
+
+                      {paymentMethod === 'Bank Transfer' && (
+                        <div className="mt-2.5 p-3 rounded-xl bg-white border border-[#C5A059]/30 text-[11px] space-y-1">
+                          <p className="font-semibold text-[#111614]">🏦 Direct Bank Account Details:</p>
+                          <p className="text-[#5A7365]">Bank: HDFC Bank • A/C: 50200012345678 • IFSC: HDFC0001234</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Compulsory ₹300 Advance Token Notice */}
+                    <div className="p-3.5 rounded-2xl bg-[#C5A059]/10 border border-[#C5A059]/40 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <span className="text-base">🔒</span>
+                        <div>
+                          <span className="font-semibold text-[#111614]">
+                            Compulsory ₹300 Advance Token for Booking Confirmation
+                          </span>
+                          <p className="text-[11px] text-[#8C857B] mt-0.5">
+                            Zero extra charges! The ₹300 advance is deducted directly from your own treatment bill.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Order Summary */}
-                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#C5A059]/30 text-xs space-y-1.5">
+                    <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#C5A059]/30 text-xs space-y-2">
                       <div className="flex justify-between font-semibold text-[#111614]">
                         <span>{selectedTreatment} ({selectedDuration} mins)</span>
-                        <span>₹{getTreatmentPrice().toLocaleString('en-IN')}</span>
+                        <span>₹{getGrossPrice().toLocaleString('en-IN')}</span>
                       </div>
-                      <p className="text-[11px] text-[#5A7365]">
-                        Therapist: <strong>{selectedTherapist}</strong> • Date: <strong>{selectedDate}</strong> at <strong>{selectedTimeSlot}</strong>
-                      </p>
+
+                      {redeemRewards && (
+                        <div className="flex justify-between font-semibold text-[#5A7365]">
+                          <span>✓ Loyalty Reward Cash Discount:</span>
+                          <span>-₹{getRewardDiscount().toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between font-medium text-[#C5A059]">
+                        <span>🔒 Advance Deposit Paid Now (From Bill):</span>
+                        <span>-₹300</span>
+                      </div>
+
+                      <div className="flex justify-between font-bold text-sm text-[#111614] border-t border-[#EDE6DD] pt-2">
+                        <span>Remaining Balance Payable at Spa:</span>
+                        <span>₹{Math.max(0, getTreatmentPrice() - 300).toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
 
                     <div className="pt-4 flex justify-between items-center">
@@ -541,5 +700,17 @@ export default function BookPage() {
 
       <Footer />
     </main>
+  )
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FCFBF8] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-[#C7A76C] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <BookForm />
+    </Suspense>
   )
 }

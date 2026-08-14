@@ -1,18 +1,12 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
 import Preloader from '@/components/hero/Preloader'
 import Navbar from '@/components/navbar/Navbar'
 import Hero from '@/components/hero/Hero'
 import Footer from '@/components/footer/Footer'
-import { TREATMENTS_DATA } from '@/components/treatments/TreatmentsSection'
-import { THERAPISTS_DATA } from '@/components/therapists/TherapistsSection'
-import { ShieldCheck, Star, Sparkles, Heart, Award, ArrowRight, BookOpen, Users } from 'lucide-react'
+import { TREATMENTS_DATA, THERAPISTS_DATA } from '@/lib/spaData'
+import { ShieldCheck, Star, Heart, Award, ArrowRight } from 'lucide-react'
 
 export default function Home() {
-  const [preloaderFinished, setPreloaderFinished] = useState(false)
-
   const whyChooseItems = [
     {
       title: 'Medical-Grade Sterilization',
@@ -34,7 +28,7 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-[#FCFBF8] text-[#111614] overflow-x-hidden">
       {/* Cinematic Entrance Preloader */}
-      <Preloader onComplete={() => setPreloaderFinished(true)} />
+      <Preloader />
 
       {/* Main Spa Navigation */}
       <Navbar />

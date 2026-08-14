@@ -1,92 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Award, Star, Calendar, CheckCircle2, ShieldCheck, Heart, ChevronRight, X } from 'lucide-react'
 
-export interface Therapist {
-  id: string
-  name: string
-  title: string
-  experienceYears: number
-  specialties: string[]
-  quote: string
-  featuredRitual: string
-  bio: string
-  certifications: string[]
-  clientRating: number
-  reviewsCount: number
-  reviewQuote: string
-  clientName: string
-  avatarBg: string
-  availableToday: boolean
-}
-
-export const THERAPISTS_DATA: Therapist[] = [
-  {
-    id: 'sarah',
-    name: 'Sarah Jenkins',
-    title: 'Master Swedish & Aromatherapy Specialist',
-    experienceYears: 10,
-    specialties: ['Swedish Massage', 'Aromatherapy', 'Pregnancy & Gentle Touch'],
-    quote: 'Healing Through Gentle Touch',
-    featuredRitual: 'Serenity Swedish Ritual',
-    bio: 'Certified internationally in London and Bali, Sarah blends rhythmic Western effleurage with traditional Ayurvedic aromatic steam inhalation to reset overstimulated nervous systems.',
-    certifications: [
-      'CIDESCO International Spa Diploma',
-      'Advanced Organic Aromatherapy Practitioner',
-      'Prenatal & Gentle Touch Certified Specialist',
-    ],
-    clientRating: 4.95,
-    reviewsCount: 218,
-    reviewQuote: 'Sarah has an intuitive touch that instantly melted away my 3-month burnout. Truly magical session!',
-    clientName: 'Ananya Sharma (Director of Product)',
-    avatarBg: 'from-[#5A7365] to-[#3E5246]',
-    availableToday: true,
-  },
-  {
-    id: 'david',
-    name: 'David Vance',
-    title: 'Senior Musculoskeletal & Deep Tissue Lead',
-    experienceYears: 8,
-    specialties: ['Deep Tissue Therapy', 'Sports Rehabilitation', 'Myofascial Trigger Pointing'],
-    quote: 'Strength Restored',
-    featuredRitual: 'Deep Recovery Therapy',
-    bio: 'Former sports physiotherapist with 8+ years treating professional athletes and corporate leaders suffering from severe posture alignment issues and lumbar pain.',
-    certifications: [
-      'Bachelor of Physiotherapy (BPT)',
-      'Certified Myofascial Release Therapist',
-      'Spinal Alignment & Trigger Point Specialist',
-    ],
-    clientRating: 4.92,
-    reviewsCount: 184,
-    reviewQuote: 'David freed up a shoulder knot I had for 2 years in just one 90-minute Deep Tissue session.',
-    clientName: 'Rohan Mehta (Founder & CEO)',
-    avatarBg: 'from-[#111614] to-[#1A211E]',
-    availableToday: true,
-  },
-  {
-    id: 'helen',
-    name: 'Helen Lin',
-    title: 'Thermal & Reflexology Master Practitioner',
-    experienceYears: 12,
-    specialties: ['Hot Stone Therapy', 'Foot Reflexology Meridian Work', 'Chakra Balancing'],
-    quote: 'Balance Begins Within',
-    featuredRitual: 'Thermal Harmony Session',
-    bio: 'Trained in Eastern foot reflexology in Kyoto and volcanic basalt heat therapy in Hawaii, Helen brings 12+ years of holistic energy meridian mastery.',
-    certifications: [
-      'Kyoto School of Traditional Reflexology Master',
-      'Volcanic Basalt Thermal Master Certification',
-      'Reiki Energy Healing Level III',
-    ],
-    clientRating: 4.98,
-    reviewsCount: 310,
-    reviewQuote: 'The hot stone ritual with Helen was out of this world. I felt like I floated out of the sanctuary.',
-    clientName: 'Priya Nambiar (Senior Advocate)',
-    avatarBg: 'from-[#C5A059] to-[#9A7A3B]',
-    availableToday: true,
-  },
-]
+import { THERAPISTS_DATA, Therapist } from '@/lib/spaData'
+export type { Therapist }
 
 interface TherapistsSectionProps {
   onOpenBooking?: (treatmentName?: string, therapistName?: string) => void
@@ -99,7 +19,15 @@ export default function TherapistsSection({ onOpenBooking }: TherapistsSectionPr
     <section id="therapists" className="py-24 bg-[#FCFBF8] relative overflow-hidden">
       {/* Full-width background image beneath the header text */}
       <div className="absolute top-0 left-0 right-0 h-[480px] w-full z-0 overflow-hidden pointer-events-none select-none">
-        <div className="absolute inset-0 bg-[url('/therapists-bg.png')] bg-cover bg-center bg-no-repeat opacity-25" />
+        <Image
+          src="/therapists-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          loading="lazy"
+          className="object-cover object-center opacity-25"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FCFBF8] via-[#FCFBF8]/20 to-[#FCFBF8]" />
       </div>
 
@@ -112,7 +40,7 @@ export default function TherapistsSection({ onOpenBooking }: TherapistsSectionPr
           <h2 className="font-serif text-3xl sm:text-5xl font-normal text-[#111614] mb-4">
             Certified Healing <span className="gold-gradient-text font-light">Artisans</span>
           </h2>
-          <p className="text-xs sm:text-sm text-[#A8B59A] font-light leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#111614] font-medium leading-relaxed">
             Every therapist at BLOOM is rigorously vetted, holds international certifications, 
             and adheres to medical-grade hygiene protocols.
           </p>
