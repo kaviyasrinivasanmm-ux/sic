@@ -16,6 +16,8 @@ import {
   Menu,
   X,
   ExternalLink,
+  Loader2,
+  Database,
 } from 'lucide-react'
 import AdminAuthGuard from '@/components/admin/AdminAuthGuard'
 import AdminOverviewTab from '@/components/admin/AdminOverviewTab'
@@ -37,6 +39,12 @@ import {
   Expense,
   Customer,
 } from '@/lib/adminData'
+import {
+  fetchBookingsFromSupabase,
+  fetchTreatmentsFromSupabase,
+  fetchTherapistsFromSupabase,
+  fetchExpensesFromSupabase,
+} from '@/lib/supabaseService'
 import { logoutAdmin } from '@/lib/adminAuth'
 
 export default function AdminDashboardPage() {
@@ -50,13 +58,54 @@ export default function AdminDashboardPage() {
   const [therapists, setTherapists] = useState<AdminTherapist[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isUsingLiveDb, setIsUsingLiveDb] = useState<boolean>(false)
 
-  const refreshAllData = useCallback(() => {
-    setBookings(getBookings())
-    setTreatments(getTreatments())
-    setTherapists(getTherapists())
-    setExpenses(getExpenses())
+  const refreshAllData = useCallback(async () => {
+    setIsLoading(true)
+    
+    // Fetch live from Supabase in parallel
+    const [bRes, tRes, thRes, eRes] = await Promise.all([
+      fetchBookingsFromSupabase(),
+      fetchTreatmentsFromSupabase(),
+      fetchTherapistsFromSupabase(),
+      fetchExpensesFromSupabase(),
+    ])
+
+    let hasLive = false
+
+    if (bRes.success && bRes.data && bRes.data.length > 0) {
+      setBookings(bRes.data as any)
+      hasLive = true
+    } else {
+      setBookings(getBookings())
+    }
+
+    if (tRes.success && tRes.data && tRes.data.length > 0) {
+      setTreatments(tRes.data as any)
+      hasLive = true
+    } else {
+      setTreatments(getTreatments())
+    }
+
+    if (thRes.success && thRes.data && thRes.data.length > 0) {
+      setTherapists(thRes.data as any)
+      hasLive = true
+    } else {
+      setTherapists(getTherapists())
+    }
+
+    if (eRes.success && eRes.data && eRes.data.length > 0) {
+      setExpenses(eRes.data as any)
+      hasLive = true
+    } else {
+      setExpenses(getExpenses())
+    }
+
     setCustomers(getCustomers())
+    setIsUsingLiveDb(hasLive)
+    setIsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -221,9 +270,22 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={refreshAllData}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#C7A76C]/30 text-xs font-semibold text-[#3A4D41] hover:bg-[#F8F5F0] transition-colors"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 text-[#C7A76C] animate-spin" />
+                ) : (
+                  <span className="text-[#C7A76C]">↻</span>
+                )}
+                <span>{isLoading ? 'Syncing...' : 'Sync Data'}</span>
+              </button>
+
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#A8B59A]/15 text-[#3A4D41] text-xs font-semibold border border-[#A8B59A]/30">
                 <span className="w-2 h-2 rounded-full bg-[#A8B59A] animate-pulse" />
-                <span>Admin Session Active</span>
+                <span>Admin Portal</span>
               </div>
             </div>
           </div>

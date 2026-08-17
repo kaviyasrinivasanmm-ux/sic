@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, CheckCircle2, AlertTriangle, Sparkles, HelpCircle, ChevronRight, X, Calendar } from 'lucide-react'
+import { Clock, CheckCircle2, AlertTriangle, Sparkles, ChevronRight, X, Calendar, Loader2, Database } from 'lucide-react'
 
 import { TREATMENTS_DATA, Treatment } from '@/lib/spaData'
-export type { Treatment }
+import { fetchTreatmentsFromSupabase } from '@/lib/supabaseService'
 
+export type { Treatment }
 
 interface TreatmentsSectionProps {
   onOpenBooking?: (treatmentName: string) => void
@@ -16,11 +17,42 @@ interface TreatmentsSectionProps {
 export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [selectedTreatment, setSelectedTreatment] = useState<Treatment | null>(null)
+  
+  // Supabase Live Data & Connection States
+  const [treatmentsList, setTreatmentsList] = useState<Treatment[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [supabaseError, setSupabaseError] = useState<string | null>(null)
+  const [isUsingLiveDb, setIsUsingLiveDb] = useState<boolean>(false)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadData() {
+      setIsLoading(true)
+      setSupabaseError(null)
+      const res = await fetchTreatmentsFromSupabase()
+      if (!isMounted) return
+
+      if (res.success && res.data && res.data.length > 0) {
+        setTreatmentsList(res.data)
+        setIsUsingLiveDb(true)
+      } else {
+        if (res.error) {
+          setSupabaseError(`Supabase connection note: ${res.error}`)
+        }
+        setTreatmentsList(TREATMENTS_DATA)
+        setIsUsingLiveDb(false)
+      }
+      setIsLoading(false)
+    }
+
+    loadData()
+    return () => { isMounted = false }
+  }, [])
 
   const filteredTreatments =
     selectedFilter === 'all'
-      ? TREATMENTS_DATA
-      : TREATMENTS_DATA.filter((t) => t.category === selectedFilter)
+      ? treatmentsList
+      : treatmentsList.filter((t) => t.category === selectedFilter)
 
   return (
     <section id="treatments" className="py-24 bg-[#FCFBF8] relative overflow-hidden">
@@ -52,6 +84,14 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
             medical-grade sanitized linens, and personalized pressure adjustments.
           </p>
 
+          {/* Supabase Error Alert Banner if connection fails */}
+          {supabaseError && (
+            <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-center gap-2 max-w-xl mx-auto">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{supabaseError} (Displaying baseline catalog)</span>
+            </div>
+          )}
+
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
             {[
@@ -76,75 +116,90 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
           </div>
         </div>
 
-        {/* Treatments Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredTreatments.map((treatment) => (
-            <motion.div
-              key={treatment.id}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.5 }}
-              className="group rounded-3xl glass-card border border-[#C7A76C]/25 hover:border-[#C7A76C] p-7 flex flex-col justify-between hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#C7A76C]/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 text-[#C7A76C] animate-spin" />
+            <p className="text-xs font-medium text-[#4A6358]">Loading live treatments from Supabase...</p>
+          </div>
+        ) : filteredTreatments.length === 0 ? (
+          /* Empty State */
+          <div className="py-16 text-center bg-white rounded-3xl border border-[#EEE6DA] p-8 max-w-md mx-auto">
+            <Sparkles className="w-8 h-8 text-[#C7A76C] mx-auto mb-3" />
+            <h3 className="font-serif text-lg font-bold text-[#111614] mb-1">No Rituals Found</h3>
+            <p className="text-xs text-[#5A7365]">No treatments available for the selected category in the database.</p>
+          </div>
+        ) : (
+          /* Treatments Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredTreatments.map((treatment) => (
+              <motion.div
+                key={treatment.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.5 }}
+                className="group rounded-3xl glass-card border border-[#C7A76C]/25 hover:border-[#C7A76C] p-7 flex flex-col justify-between hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#C7A76C]/10 to-transparent rounded-bl-full pointer-events-none group-hover:scale-125 transition-transform duration-500" />
 
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-[#A8B59A]/10 text-[#A8B59A] font-bold">
-                    {treatment.category}
-                  </span>
-                  <span className="font-serif font-bold text-xl text-[#C7A76C]">
-                    ₹{treatment.priceINR.toLocaleString('en-IN')}
-                  </span>
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] uppercase tracking-widest px-3 py-1 rounded-full bg-[#A8B59A]/10 text-[#A8B59A] font-bold">
+                      {treatment.category}
+                    </span>
+                    <span className="font-serif font-bold text-xl text-[#C7A76C]">
+                      ₹{treatment.priceINR.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif text-2xl font-semibold text-[#111614] mb-1 group-hover:text-[#A8B59A] transition-colors">
+                    {treatment.name}
+                  </h3>
+                  <p className="text-xs text-[#C7A76C] mb-4">{treatment.subtitle}</p>
+                  <p className="text-xs text-[#8FA88B] line-clamp-3 leading-relaxed mb-6 font-light">
+                    {treatment.description}
+                  </p>
+
+                  {/* Key Benefits Preview */}
+                  <div className="space-y-2 mb-6">
+                    {(treatment.benefits || []).slice(0, 2).map((benefit, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-[#111614]">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#A8B59A] shrink-0 mt-0.5" />
+                        <span>{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <h3 className="font-serif text-2xl font-semibold text-[#111614] mb-1 group-hover:text-[#A8B59A] transition-colors">
-                  {treatment.name}
-                </h3>
-                <p className="text-xs text-[#C7A76C] mb-4">{treatment.subtitle}</p>
-                <p className="text-xs text-[#8FA88B] line-clamp-3 leading-relaxed mb-6 font-light">
-                  {treatment.description}
-                </p>
+                {/* Action Buttons */}
+                <div className="pt-4 border-t border-[#EEE6DA] flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => setSelectedTreatment(treatment)}
+                    className="flex-1 py-2.5 px-4 rounded-full glass-card border border-[#C7A76C]/30 text-xs font-semibold text-[#3A4D41] hover:bg-[#F8F5F0] transition-colors flex items-center justify-center gap-1 group-hover:border-[#C7A76C]"
+                  >
+                    <span>Explore Details</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#C7A76C]" />
+                  </button>
 
-                {/* Key Benefits Preview */}
-                <div className="space-y-2 mb-6">
-                  {treatment.benefits.slice(0, 2).map((benefit, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-[#111614]">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#A8B59A] shrink-0 mt-0.5" />
-                      <span>{benefit}</span>
-                    </div>
-                  ))}
+                  <button
+                    onClick={() => {
+                      if (onOpenBooking) {
+                        onOpenBooking(treatment.name)
+                      } else {
+                        window.location.href = `/book?treatment=${encodeURIComponent(treatment.name)}`
+                      }
+                    }}
+                    className="py-2.5 px-5 rounded-full bg-[#A8B59A] hover:bg-[#C7A76C] text-white text-xs font-semibold transition-colors shadow-sm"
+                  >
+                    Book Ritual
+                  </button>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-[#EEE6DA] flex items-center justify-between gap-3">
-                <button
-                  onClick={() => setSelectedTreatment(treatment)}
-                  className="flex-1 py-2.5 px-4 rounded-full glass-card border border-[#C7A76C]/30 text-xs font-semibold text-[#3A4D41] hover:bg-[#F8F5F0] transition-colors flex items-center justify-center gap-1 group-hover:border-[#C7A76C]"
-                >
-                  <span>Explore Details</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-[#C7A76C]" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (onOpenBooking) {
-                      onOpenBooking(treatment.name)
-                    } else {
-                      window.location.href = `/book?treatment=${encodeURIComponent(treatment.name)}`
-                    }
-                  }}
-                  className="py-2.5 px-5 rounded-full bg-[#A8B59A] hover:bg-[#C7A76C] text-white text-xs font-semibold transition-colors shadow-sm"
-                >
-                  Book Ritual
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Deep-Dive Treatment Detail Modal */}
@@ -185,7 +240,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
                   </span>
                   <span className="flex items-center gap-1.5 text-[#8C857B]">
                     <Clock className="w-4 h-4 text-[#C7A76C]" />
-                    Available Durations: {selectedTreatment.durations.join(' / ')} mins
+                    Available Durations: {(selectedTreatment.durations || [60]).join(' / ')} mins
                   </span>
                 </div>
               </div>
@@ -206,7 +261,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
                     Clinically Proven Benefits
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {selectedTreatment.benefits.map((benefit, idx) => (
+                    {(selectedTreatment.benefits || []).map((benefit, idx) => (
                       <div key={idx} className="p-3 rounded-xl bg-white border border-[#C7A76C]/20 flex items-start gap-2 text-xs text-[#111614]">
                         <CheckCircle2 className="w-4 h-4 text-[#A8B59A] shrink-0 mt-0.5" />
                         <span>{benefit}</span>
@@ -223,7 +278,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
                       Ideal Candidates
                     </h5>
                     <ul className="space-y-1.5 text-xs text-[#3A4D41]">
-                      {selectedTreatment.bestFor.map((item, i) => (
+                      {(selectedTreatment.bestFor || []).map((item, i) => (
                         <li key={i}>• {item}</li>
                       ))}
                     </ul>
@@ -235,7 +290,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
                       Contraindications & Warnings
                     </h5>
                     <ul className="space-y-1.5 text-xs text-[#8C857B]">
-                      {selectedTreatment.contraindications.map((item, i) => (
+                      {(selectedTreatment.contraindications || []).map((item, i) => (
                         <li key={i}>• {item}</li>
                       ))}
                     </ul>
@@ -248,7 +303,7 @@ export default function TreatmentsSection({ onOpenBooking }: TreatmentsSectionPr
                     Step-by-Step Ritual Sequence
                   </h4>
                   <div className="space-y-3">
-                    {selectedTreatment.processSteps.map((step, idx) => (
+                    {(selectedTreatment.processSteps || []).map((step, idx) => (
                       <div key={idx} className="p-3.5 rounded-xl bg-white border border-[#EEE6DA] flex items-start justify-between gap-4">
                         <div>
                           <p className="font-semibold text-xs text-[#111614]">

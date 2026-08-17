@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar as CalendarIcon, Clock, User, Check, X, Sparkles, MessageSquare, ArrowRight, ShieldCheck, ChevronRight, Phone, Mail } from 'lucide-react'
-import { TREATMENTS_DATA, THERAPISTS_DATA } from '@/lib/spaData'
-import { createBookingInSupabase } from '@/lib/supabaseService'
+import { Calendar as CalendarIcon, Clock, User, Check, X, Sparkles, MessageSquare, ArrowRight, ShieldCheck, ChevronRight, Phone, Mail, Loader2 } from 'lucide-react'
+import { TREATMENTS_DATA, THERAPISTS_DATA, Treatment, Therapist } from '@/lib/spaData'
+import { createBookingInSupabase, fetchTreatmentsFromSupabase, fetchTherapistsFromSupabase } from '@/lib/supabaseService'
 import { isSlotAvailable } from '@/lib/adminData'
 
 interface BookingModalProps {
@@ -21,6 +21,10 @@ export default function BookingModal({
   onClose,
 }: BookingModalProps) {
   const [step, setStep] = useState<number>(1)
+  const [treatments, setTreatments] = useState<Treatment[]>(TREATMENTS_DATA)
+  const [therapists, setTherapists] = useState<Therapist[]>(THERAPISTS_DATA)
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState<boolean>(false)
+
   const [selectedTreatment, setSelectedTreatment] = useState<string>(
     initialTreatment || TREATMENTS_DATA[0].name
   )
@@ -51,6 +55,29 @@ export default function BookingModal({
     if (initialTherapist) setSelectedTherapist(initialTherapist)
   }, [initialTreatment, initialTherapist])
 
+  useEffect(() => {
+    if (!isOpen) return
+    let isMounted = true
+    async function loadCatalog() {
+      setIsLoadingCatalog(true)
+      const [tRes, thRes] = await Promise.all([
+        fetchTreatmentsFromSupabase(),
+        fetchTherapistsFromSupabase(),
+      ])
+      if (!isMounted) return
+      if (tRes.success && tRes.data && tRes.data.length > 0) {
+        setTreatments(tRes.data)
+      }
+      if (thRes.success && thRes.data && thRes.data.length > 0) {
+        setTherapists(thRes.data)
+      }
+      setIsLoadingCatalog(false)
+    }
+
+    loadCatalog()
+    return () => { isMounted = false }
+  }, [isOpen])
+
   const timeSlots = [
     { time: '10:00 AM', status: 'available' },
     { time: '12:30 PM', status: 'available' },
@@ -77,7 +104,7 @@ export default function BookingModal({
   }
 
   const getGrossPrice = () => {
-    const t = TREATMENTS_DATA.find((item) => item.name === selectedTreatment)
+    const t = treatments.find((item) => item.name === selectedTreatment)
     let base = t ? t.priceINR : 3499
     if (selectedDuration === 120) base += 1200
     if (selectedDuration === 60) base -= 500
@@ -145,6 +172,22 @@ export default function BookingModal({
       status: 'confirmed',
     })
 
+    // Also push directly to Supabase Live DB
+    createBookingInSupabase({
+      bookingRef: ref,
+      clientName,
+      clientPhone,
+      clientEmail,
+      selectedTreatment,
+      selectedDuration,
+      selectedTherapist,
+      selectedDate,
+      selectedTimeSlot,
+      selectedAddons,
+      totalPrice: finalPrice,
+      specialNotes,
+    }).catch((err) => console.warn('Async Supabase sync:', err))
+
     triggerFlowerConfetti()
   }
 
@@ -189,8 +232,9 @@ export default function BookingModal({
             <div>
               {/* Stepper Bar Header */}
               <div className="mb-6">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-[#C5A059] block mb-1">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-[#C5A059] block mb-1 flex items-center gap-1.5">
                   Step 0{step} of 04
+                  {isLoadingCatalog && <Loader2 className="w-3 h-3 animate-spin text-[#C5A059]" />}
                 </span>
                 <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#111614]">
                   Reserve Your Sanctuary Experience
@@ -216,7 +260,7 @@ export default function BookingModal({
                       Select Ritual
                     </label>
                     <div className="space-y-2">
-                      {TREATMENTS_DATA.map((t) => (
+                      {treatments.map((t) => (
                         <button
                           key={t.id}
                           type="button"
@@ -283,7 +327,7 @@ export default function BookingModal({
                       Choose Preferred Senior Specialist
                     </label>
                     <div className="space-y-3">
-                      {THERAPISTS_DATA.map((th) => (
+                      {therapists.map((th) => (
                         <button
                           key={th.id}
                           type="button"
@@ -295,7 +339,7 @@ export default function BookingModal({
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${th.avatarBg} text-white flex items-center justify-center font-bold text-sm`}>
+                            <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${th.avatarBg || 'from-[#5A7365] to-[#3E5246]'} text-white flex items-center justify-center font-bold text-sm`}>
                               {th.name.charAt(0)}
                             </div>
                             <div>

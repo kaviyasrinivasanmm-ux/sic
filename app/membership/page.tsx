@@ -1,14 +1,71 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Navbar from '@/components/navbar/Navbar'
 import Footer from '@/components/footer/Footer'
 import { motion } from 'framer-motion'
-import { Check, Star, RefreshCw, X } from 'lucide-react'
+import { Check, Star, RefreshCw, X, Loader2, AlertTriangle, Database } from 'lucide-react'
+import { fetchMembershipsFromSupabase } from '@/lib/supabaseService'
+
+const DEFAULT_MEMBERSHIP_TIERS = [
+  {
+    id: 'silver',
+    name: 'Silver Serenity Pass',
+    price: '₹9,999 / month',
+    subtitle: 'For Regular Monthly Reset',
+    bgGradient: 'from-[#1A211E] to-[#2D3A34]',
+    badgeColor: '#A8B59A',
+    perksFront: ['2 Full 90-min Massage Sessions', '15% Off Additional Rituals', 'Priority Weekend Booking'],
+    perksBack: [
+      'Free Organic Aromatherapy Add-on',
+      'Complimentary Herbal Tea Service',
+      'Rollover unused sessions up to 60 days',
+      '1 Free Guest Spa Pass per Quarter',
+    ],
+  },
+  {
+    id: 'gold',
+    name: 'Gold BLOOM Elite Pass',
+    price: '₹18,999 / month',
+    subtitle: 'Ultimate Self-Care Privilege',
+    bgGradient: 'from-[#111614] via-[#1A211E] to-[#111614]',
+    badgeColor: '#C7A76C',
+    popular: true,
+    perksFront: ['4 Full 90-min Ritual Sessions', '25% Off All Signature Packages', 'Dedicated Senior Therapist Match'],
+    perksBack: [
+      'Unlimited Thermal Hot Stone Upgrades',
+      'Complimentary Hydrotherapy Soaks',
+      'Private VIP Spa Suite Access',
+      '2 Free Guest Spa Passes per Month',
+      'Personalized Botanical Oil Blend Customization',
+    ],
+  },
+  {
+    id: 'family',
+    name: 'Family Spa Circle Pass',
+    price: '₹29,999 / month',
+    subtitle: 'Shared Luxury For Up to 4 Members',
+    bgGradient: 'from-[#222B27] to-[#111614]',
+    badgeColor: '#EEE6DA',
+    perksFront: ['8 Shared 90-min Ritual Sessions', 'Transferable among Family Members', 'VIP Suite Reservation'],
+    perksBack: [
+      'Concurrent Couple & Family Massage Rooms',
+      'Complimentary Scalp & Facial Meridian Work',
+      'Zero Cancellation Penalty Fees',
+      '24/7 Dedicated Concierge Booking Hotline',
+    ],
+  },
+]
 
 export default function MembershipPage() {
   const [flippedCard, setFlippedCard] = useState<string | null>(null)
+
+  // Supabase Live Data & Connection States
+  const [membershipTiers, setMembershipTiers] = useState<any[]>(DEFAULT_MEMBERSHIP_TIERS)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [supabaseError, setSupabaseError] = useState<string | null>(null)
+  const [isUsingLiveDb, setIsUsingLiveDb] = useState<boolean>(false)
 
   // Member visit lookup state
   const [lookupEmail, setLookupEmail] = useState('')
@@ -24,6 +81,31 @@ export default function MembershipPage() {
   const [enrollPaymentMethod, setEnrollPaymentMethod] = useState<'UPI' | 'Bank Transfer' | 'Pay at Spa (COD)'>('UPI')
   const [enrollAdvance, setEnrollAdvance] = useState(true)
   const [enrollSuccess, setEnrollSuccess] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadMemberships() {
+      setIsLoading(true)
+      setSupabaseError(null)
+      const res = await fetchMembershipsFromSupabase()
+      if (!isMounted) return
+
+      if (res.success && res.data && res.data.length > 0) {
+        setMembershipTiers(res.data)
+        setIsUsingLiveDb(true)
+      } else {
+        if (res.error) {
+          setSupabaseError(`Supabase connection note: ${res.error}`)
+        }
+        setMembershipTiers(DEFAULT_MEMBERSHIP_TIERS)
+        setIsUsingLiveDb(false)
+      }
+      setIsLoading(false)
+    }
+
+    loadMemberships()
+    return () => { isMounted = false }
+  }, [])
 
   const handleLookupMember = (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,56 +131,6 @@ export default function MembershipPage() {
     }
     setEnrollSuccess(true)
   }
-
-  const membershipTiers = [
-    {
-      id: 'silver',
-      name: 'Silver Serenity Pass',
-      price: '₹9,999 / month',
-      subtitle: 'For Regular Monthly Reset',
-      bgGradient: 'from-[#1A211E] to-[#2D3A34]',
-      badgeColor: '#A8B59A',
-      perksFront: ['2 Full 90-min Massage Sessions', '15% Off Additional Rituals', 'Priority Weekend Booking'],
-      perksBack: [
-        'Free Organic Aromatherapy Add-on',
-        'Complimentary Herbal Tea Service',
-        'Rollover unused sessions up to 60 days',
-        '1 Free Guest Spa Pass per Quarter',
-      ],
-    },
-    {
-      id: 'gold',
-      name: 'Gold BLOOM Elite Pass',
-      price: '₹18,999 / month',
-      subtitle: 'Ultimate Self-Care Privilege',
-      bgGradient: 'from-[#111614] via-[#1A211E] to-[#111614]',
-      badgeColor: '#C7A76C',
-      popular: true,
-      perksFront: ['4 Full 90-min Ritual Sessions', '25% Off All Signature Packages', 'Dedicated Senior Therapist Match'],
-      perksBack: [
-        'Unlimited Thermal Hot Stone Upgrades',
-        'Complimentary Hydrotherapy Soaks',
-        'Private VIP Spa Suite Access',
-        '2 Free Guest Spa Passes per Month',
-        'Personalized Botanical Oil Blend Customization',
-      ],
-    },
-    {
-      id: 'family',
-      name: 'Family Spa Circle Pass',
-      price: '₹29,999 / month',
-      subtitle: 'Shared Luxury For Up to 4 Members',
-      bgGradient: 'from-[#222B27] to-[#111614]',
-      badgeColor: '#EEE6DA',
-      perksFront: ['8 Shared 90-min Ritual Sessions', 'Transferable among Family Members', 'VIP Suite Reservation'],
-      perksBack: [
-        'Concurrent Couple & Family Massage Rooms',
-        'Complimentary Scalp & Facial Meridian Work',
-        'Zero Cancellation Penalty Fees',
-        '24/7 Dedicated Concierge Booking Hotline',
-      ],
-    },
-  ]
 
   return (
     <main className="relative min-h-screen bg-[#FCFBF8] text-[#111614] overflow-hidden">
@@ -130,6 +162,14 @@ export default function MembershipPage() {
           <p className="text-xs sm:text-sm text-[#111614] font-medium">
             Enjoy priority reservations, transferable sessions, complimentary thermal upgrades, and dedicated concierge access.
           </p>
+
+          {/* Supabase Error Alert Banner */}
+          {supabaseError && (
+            <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-center gap-2 max-w-xl mx-auto">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{supabaseError} (Displaying baseline passes)</span>
+            </div>
+          )}
 
           {/* Visit Counter & Pass Lookup Widget */}
           <div className="mt-8 p-6 rounded-3xl bg-[#1D2B23] border border-[#C7A76C]/35 text-white shadow-xl text-left">
@@ -206,95 +246,110 @@ export default function MembershipPage() {
           </div>
         </div>
 
-        {/* Membership Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {membershipTiers.map((tier) => {
-            const isFlipped = flippedCard === tier.id
-            return (
-              <div key={tier.id} className="perspective-1000 h-[485px]">
-                <motion.div
-                  className="w-full h-full relative transform-style-3d cursor-pointer"
-                  animate={{ rotateY: isFlipped ? 180 : 0 }}
-                  transition={{ duration: 0.7, ease: 'easeInOut' }}
-                  onClick={() => setFlippedCard(isFlipped ? null : tier.id)}
-                >
-                  {/* Front Face */}
-                  <div className={`absolute inset-0 backface-hidden rounded-3xl bg-gradient-to-b ${tier.bgGradient} text-white p-8 border border-[#C7A76C]/40 shadow-2xl flex flex-col justify-between`}>
-                    {tier.popular && (
-                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-[#C7A76C] text-[#111614] text-[10px] font-bold uppercase tracking-widest shadow-md">
-                        Most Popular
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 text-[#C7A76C] animate-spin" />
+            <p className="text-xs font-medium text-[#4A6358]">Loading live membership passes from Supabase...</p>
+          </div>
+        ) : membershipTiers.length === 0 ? (
+          /* Empty State */
+          <div className="py-16 text-center bg-white rounded-3xl border border-[#EEE6DA] p-8 max-w-md mx-auto">
+            <Star className="w-8 h-8 text-[#C7A76C] mx-auto mb-3" />
+            <h3 className="font-serif text-lg font-bold text-[#111614] mb-1">No Passes Found</h3>
+            <p className="text-xs text-[#5A7365]">No active membership tiers found in the database.</p>
+          </div>
+        ) : (
+          /* Membership Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {membershipTiers.map((tier) => {
+              const isFlipped = flippedCard === tier.id
+              return (
+                <div key={tier.id} className="perspective-1000 h-[485px]">
+                  <motion.div
+                    className="w-full h-full relative transform-style-3d cursor-pointer"
+                    animate={{ rotateY: isFlipped ? 180 : 0 }}
+                    transition={{ duration: 0.7, ease: 'easeInOut' }}
+                    onClick={() => setFlippedCard(isFlipped ? null : tier.id)}
+                  >
+                    {/* Front Face */}
+                    <div className={`absolute inset-0 backface-hidden rounded-3xl bg-gradient-to-b ${tier.bgGradient || 'from-[#1A211E] to-[#2D3A34]'} text-white p-8 border border-[#C7A76C]/40 shadow-2xl flex flex-col justify-between`}>
+                      {tier.popular && (
+                        <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-[#C7A76C] text-[#111614] text-[10px] font-bold uppercase tracking-widest shadow-md">
+                          Most Popular
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-xs uppercase tracking-widest font-mono text-[#EEE6DA]">
+                          Membership Pass
+                        </span>
+                        <h3 className="font-serif text-2xl font-bold text-white mt-1 mb-1">
+                          {tier.name}
+                        </h3>
+                        <p className="text-xs text-[#8C857B] mb-6">{tier.subtitle}</p>
+
+                        <div className="font-serif font-bold text-3xl text-[#EEE6DA] mb-6">
+                          {tier.price}
+                        </div>
+
+                        <div className="space-y-3">
+                          {(tier.perksFront || []).map((perk: string, i: number) => (
+                            <div key={i} className="flex items-center gap-2.5 text-xs text-white/90">
+                              <Check className="w-4 h-4 text-[#C7A76C] shrink-0" />
+                              <span>{perk}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
 
-                    <div>
-                      <span className="text-xs uppercase tracking-widest font-mono text-[#EEE6DA]">
-                        Membership Pass
-                      </span>
-                      <h3 className="font-serif text-2xl font-bold text-white mt-1 mb-1">
-                        {tier.name}
-                      </h3>
-                      <p className="text-xs text-[#8C857B] mb-6">{tier.subtitle}</p>
-
-                      <div className="font-serif font-bold text-3xl text-[#EEE6DA] mb-6">
-                        {tier.price}
-                      </div>
-
-                      <div className="space-y-3">
-                        {tier.perksFront.map((perk, i) => (
-                          <div key={i} className="flex items-center gap-2.5 text-xs text-white/90">
-                            <Check className="w-4 h-4 text-[#C7A76C] shrink-0" />
-                            <span>{perk}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                      <span className="text-[11px] text-[#EEE6DA] underline font-mono">
-                        Click to flip & see details →
-                      </span>
-                      <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white">
-                        <RefreshCw className="w-4 h-4" />
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Back Face */}
-                  <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-3xl bg-[#111614] text-white p-8 border border-[#C7A76C] shadow-2xl flex flex-col justify-between`}>
-                    <div>
-                      <span className="text-xs uppercase tracking-widest font-mono text-[#C7A76C]">
-                        Exclusive Privileges
-                      </span>
-                      <h3 className="font-serif text-xl font-bold text-white mt-1 mb-4">
-                        {tier.name} Benefits
-                      </h3>
-
-                      <div className="space-y-3 text-xs">
-                        {tier.perksBack.map((perk, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-[#8C857B]">
-                            <Star className="w-3.5 h-3.5 text-[#C7A76C] shrink-0 mt-0.5" />
-                            <span>{perk}</span>
-                          </div>
-                        ))}
+                      <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                        <span className="text-[11px] text-[#EEE6DA] underline font-mono">
+                          Click to flip & see details →
+                        </span>
+                        <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white">
+                          <RefreshCw className="w-4 h-4" />
+                        </span>
                       </div>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedEnrollTier(tier)
-                        setIsEnrollModalOpen(true)
-                      }}
-                      className="w-full py-3 rounded-full bg-gradient-to-r from-[#C7A76C] to-[#9A7A3B] text-white font-semibold text-xs tracking-wider shadow-lg hover:opacity-90"
-                    >
-                      Enroll & Pay for {tier.name.split(' Pass')[0]}
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )
-          })}
-        </div>
+                    {/* Back Face */}
+                    <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-3xl bg-[#111614] text-white p-8 border border-[#C7A76C] shadow-2xl flex flex-col justify-between`}>
+                      <div>
+                        <span className="text-xs uppercase tracking-widest font-mono text-[#C7A76C]">
+                          Exclusive Privileges
+                        </span>
+                        <h3 className="font-serif text-xl font-bold text-white mt-1 mb-4">
+                          {tier.name} Benefits
+                        </h3>
+
+                        <div className="space-y-3 text-xs">
+                          {(tier.perksBack || []).map((perk: string, i: number) => (
+                            <div key={i} className="flex items-start gap-2.5 text-[#8C857B]">
+                              <Star className="w-3.5 h-3.5 text-[#C7A76C] shrink-0 mt-0.5" />
+                              <span>{perk}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedEnrollTier(tier)
+                          setIsEnrollModalOpen(true)
+                        }}
+                        className="w-full py-3 rounded-full bg-gradient-to-r from-[#C7A76C] to-[#9A7A3B] text-white font-semibold text-xs tracking-wider shadow-lg hover:opacity-90"
+                      >
+                        Enroll & Pay for {tier.name.split(' Pass')[0]}
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Membership Claim & Payment Modal */}
